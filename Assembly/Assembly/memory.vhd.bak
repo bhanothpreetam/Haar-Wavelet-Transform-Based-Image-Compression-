@@ -1,0 +1,86 @@
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+entity memory is
+    port (
+        m_write: in std_logic;
+        m_sel: in std_logic;
+        min10, min11, min12, min13, min20, min21, min22, min23: in std_logic_vector(7 downto 0);
+        m_A: in std_logic_vector(9 downto 0);
+        mout10, mout11, mout12, mout13, mout20, mout21, mout22, mout23: out std_logic_vector(7 downto 0);
+        clk, rst: in std_logic
+    );
+end entity memory;
+
+architecture a of memory is
+    type mem is array (0 to 4095) of std_logic_vector(7 downto 0);
+    signal data: mem := (others => (others => '0'));
+    signal i, j, k: integer := 0;
+
+begin
+
+    process (m_A)
+    begin
+        i <= to_integer(unsigned(m_A));
+        j <= i / 16;
+        k <= 4 * 64 * (i rem 16);
+    end process;
+
+    process (clk, rst)
+    begin
+        if rst = '1' then
+            data <= (others => (others => '0'));
+        elsif rising_edge(clk) then
+            if m_write = '1' then
+                if m_sel = '0' then
+                    data(i * 4) <= min10;
+                    data((i * 4) + 1) <= min11;
+                    data((i * 4) + 2) <= min12;
+                    data((i * 4) + 3) <= min13;
+
+                    data((i * 4) + 2048) <= min20;
+                    data((i * 4) + 2049) <= min21;
+                    data((i * 4) + 2050) <= min22;
+                    data((i * 4) + 2051) <= min23;
+                else
+                    data(j + k) <= min10;
+                    data(j + 64 + k) <= min11;
+                    data(j + 128 + k) <= min12;
+                    data(j + 192 + k) <= min13;
+
+                    data(j + 32 + k) <= min20;
+                    data(j + 64 + k + 32) <= min21;
+                    data(j + 128 + k + 32) <= min22;
+                    data(j + 192 + k + 32) <= min23;
+                end if;
+            end if;
+        end if;
+    end process;
+
+    process (m_A, data, m_sel)
+    begin
+        if m_sel = '0' then
+            mout10 <= data(4 * i);
+            mout11 <= data((4 * i) + 1);
+            mout12 <= data((4 * i) + 2);
+            mout13 <= data((4 * i) + 3);
+
+            mout20 <= data((4 * i) + 2048);
+            mout21 <= data((4 * i) + 2049);
+            mout22 <= data((4 * i) + 2050);
+            mout23 <= data((4 * i) + 2051);
+        else
+            mout10 <= data(j + k);
+            mout11 <= data(j + 64 + k);
+            mout12 <= data(j + 128 + k);
+            mout13 <= data(j + 192 + k);
+
+            mout20 <= data(j + k + 32);
+            mout21 <= data(j + 64 + k + 32);
+            mout22 <= data(j + 128 + k + 32);
+            mout23 <= data(j + 192 + k + 32);
+        end if;
+    end process;
+
+end architecture a;
